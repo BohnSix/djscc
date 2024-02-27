@@ -1,0 +1,7 @@
+.git/
+.vscode/
+checkpoints/
+data/
+validation_imgs/
+train_logs/
+validation.mp4
