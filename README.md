@@ -5,25 +5,25 @@
 
 `Chap.III` 中给出的功率约束的公式是
 $$ z = \sqrt{kP}\frac{\tilde{z}}{\sqrt{\tilde{z}^*\tilde{z}}} $$
-其中$\tilde{z}$应该是一个`[kx1]`的向量，因此分母计算得到的模长是一个归一化常数，保证整个分数的功率为1，并根据系数$\sqrt{kP}$进行功率约束。
+其中 $\tilde{z}$ 应该是一个`[kx1]`的向量，因此分母计算得到的模长是一个归一化常数，保证整个分数的功率为`1`，并根据系数$\sqrt{kP}$进行功率约束。
 
-一张图片编码成 $k$ 个符号，信号的平均功率为 $P$，总功率为 $kP$。传输 $b$ 张图片的平均功率为 $P$，总功率为 $bkP$。因此归一化因子应该是$1/\sqrt{bkP}$。 
+一张图片编码成 $k$ 个符号，信号的平均功率为 $P$，总功率为 $kP$。传输 $b$ 张图片的平均功率为 $P$，总功率为 $bkP$。因此归一化因子应该是$1/\sqrt{bkP}$。
 
-传输的信号拉直成`[bk, 1]`，信噪比为`snr`，噪声向量的形状也是`[bk, 1]`，总功率为`bkP/snr`. 
+传输的信号拉直成`[bk, 1]`，信噪比为`snr`，噪声向量的形状也是`[bk, 1]`，总功率为`bkP/snr`.
 
 
 ##  训练过程应该没有问题，需要重构并封装一下
 
---- 
---- 
---- 
+---
+---
+---
 
 
 # Launch Records
 
 ## Introduction
 
-Reimplement a `JSCC` solution for weirless image transmission in Pytorch, but **FAILED** to reach the performance mentioned in literature. 
+Reimplement a `JSCC` solution for weirless image transmission in Pytorch, but **FAILED** to reach the performance mentioned in literature.
 
 [Deep Joint Source-Channel Coding for Wireless Image Transmission](https://arxiv.org/abs/1809.01733).
 
@@ -34,7 +34,7 @@ Reference： [irdanish11 implemantation](https://github.com/irdanish11/DJSCC-for
 
 ## Technical Solution
 
-Using an `AutoEncoder`to compress image from `[b, 3, H, W]` to feature maps with the shape of`[b, c, h, w]`, feed into channels `[AWGN, Slow Fading Channel]` after power constraint and recover. 
+Using an `AutoEncoder`to compress image from `[b, 3, H, W]` to feature maps with the shape of`[b, c, h, w]`, feed into channels `[AWGN, Slow Fading Channel]` after power constraint and recover.
 
 
 ## Experimental setup
@@ -58,7 +58,7 @@ During performance evaluation transmit each image 10 times in order to mitigate 
 
 ## Experimental result
 
-**Unable to achieve the performance mentioned in literature**. 
+**Unable to achieve the performance mentioned in literature**.
 
 See [Visualization](visualization.md) for details.
 
@@ -71,7 +71,7 @@ See [Visualization](visualization.md) for details.
 
 ## colab environment setup snippets
 
-This is used to install an old version python on colab for tensorflow 1.15. 
+This is used to install an old version python on colab for tensorflow 1.15.
 
 ```
 %env PYTHONPATH = # /env/python
