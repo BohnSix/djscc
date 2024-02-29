@@ -68,27 +68,30 @@ class Channel(nn.Module):
         super().__init__()
         self.channel_type = channel_type
         self.channel_snr = channel_snr
-    
-    def awgn(self, x, stddev, lst):
-        cmplx_dist = np.random.normal(loc=0, scale=np.sqrt(2)/2, size=(lst[0],lst[1],lst[2]*2)).view(np.complex128)
-        cmplx_dist = torch.from_numpy(cmplx_dist)
-        noise = cmplx_dist.cuda() * stddev
+
+    def awgn(self, x, noise_pwr):
+        cmplx_dist_real = torch.from_numpy(np.random.normal(0, np.sqrt(noise_pwr/2), size=x.shape))
+        cmplx_dist_real = torch.from_numpy(np.random.normal(0, np.sqrt(noise_pwr/2), size=x.shape))
+        noise = torch.complex(cmplx_dist_real, cmplx_dist_real).cuda()
         return x + noise
 
-    def forward(self, channal_input, lst):
+    def forward(self, channel_input, P):
         # print("channel_snr: {}".format(self.channel_snr))
-        k = np.prod(lst)
+
+        b, c, h, w = list(channel_input.shape)
+        z = channel_input.reshape(b, -1).permute(1, 0)
+        k = z.shape[0]
+
         snr = 10**(self.channel_snr/10.0)
-        abs_val = torch.abs(channal_input)
-        signl_pwr = torch.sum(torch.square(abs_val)) / k
-        noise_pwr = signl_pwr / snr
-        noise_stddev = torch.sqrt(noise_pwr)
+        abs_val = torch.abs(z)
+        signl_pwr = torch.sum(torch.square(abs_val), 1) / k
+        noise_pwr = P / snr
 
         if self.channel_type == "awgn":
-            channal_output = self.awgn(channal_input, noise_stddev, lst)
-            h = torch.ones_like(channal_input)
+            channal_output = self.awgn(channel_input, noise_pwr)
+            H = torch.ones_like(channel_input)
 
-        return channal_output, h
+        return channal_output, H
 
 class JSCC(nn.Module):
     def __init__(self, conv_depth, snr_db=10):
@@ -97,12 +100,18 @@ class JSCC(nn.Module):
         self.channel = Channel("awgn", snr_db)
         self.decoder = Decoder(conv_depth)
 
+    def powerConstraint(self, x, P=1):
+        b, k = x.shape
+
+        x = torch.sqrt(k*P)
+
+        return x
+
     def forward(self, inputs, snr_db=10, P=1):
         prev_chn_gain = None
         chn_in = self.encoder(inputs)
 
-        lst = list(chn_in.shape)[1:]
-        chn_out, h = self.channel(chn_in, lst)
+        chn_out, h = self.channel(chn_in, P=1)
 
         decoded_img = self.decoder(chn_out)
 
@@ -110,7 +119,7 @@ class JSCC(nn.Module):
 
 def Calculate_filters(comp_ratio, F=8, n=3072):
     K = (comp_ratio*n)/F**2
-    return int(K)
+    return round(K)
 
 # ###############################################################
 # compression_ratios = [0.04, 0.09, 0.17, 0.25, 0.33, 0.42, 0.49]
@@ -123,15 +132,14 @@ def Calculate_filters(comp_ratio, F=8, n=3072):
 # ###############################################################
 
 SNR = 10
-COMPRESSION_RATIO = 0.17
-K = Calculate_filters(COMPRESSION_RATIO)
+COMPRESSION_RATIO = 0.49
 
 """
 rm checkpoints/*
 rm -r train_logs/*
 rm validation_imgs/*
 
-nohup python -u torch_impl.py > train_logs/snr10_c17.log 2>&1 &
+nohup python -u torch_impl.py > train_logs/snr10_c04.log 2>&1 &
 """
 
 EPOCHS = 2500
@@ -143,6 +151,7 @@ TRAIN_IMAGE_NUM = 50000
 TEST_IMAGE_NUM = 10000
 TRAIN_BS = 8192
 TEST_BS = 4096
+K = Calculate_filters(COMPRESSION_RATIO)
 
 transform = transforms.Compose([transforms.ToTensor()])
 
@@ -168,7 +177,7 @@ def train_one_epoch(epoch_index, tb_writer):
         inputs = inputs.cuda()
         optimizer.zero_grad()
         decoded_img, chn_out = model(inputs)
-       
+
         loss = loss_fn(decoded_img, inputs)
         loss.backward()
         optimizer.step()
@@ -190,13 +199,13 @@ change_lr_flag = True
 
 for epoch in range(1, EPOCHS+1):
     if epoch > 640 and change_lr_flag:
-        LEARNING_RATE = 1e-4
+        LEARNING_RATE = LEARNING_RATE / 10
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
         change_lr_flag = False
-        print("Update LR to 1e-4")
+        print("Update LR to {LEARNING_RATE}\n")
 
     cur = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f'EPOCH {epoch} starts at {cur}')
+    print(f'EPOCH {epoch:03d} starts at {cur}')
 
     model.train(True)
     avg_loss = train_one_epoch(epoch, writer) * 1e4 / TRAIN_IMAGE_NUM
@@ -214,8 +223,8 @@ for epoch in range(1, EPOCHS+1):
 
                 running_vloss += vloss
 
-        a = vinputs[:256].detach().cpu().numpy().reshape(16, 16, 3, 32, 32).transpose(0, 1, 3, 4, 2)
-        b = decoded_img[:256].detach().cpu().numpy().reshape(16, 16, 3, 32, 32).transpose(0, 1, 3, 4, 2)
+        a = vinputs[:128].detach().cpu().numpy().reshape(16, 8, 3, 32, 32).transpose(0, 1, 3, 4, 2)
+        b = decoded_img[:128].detach().cpu().numpy().reshape(16, 8, 3, 32, 32).transpose(0, 1, 3, 4, 2)
         c = (np.hstack(np.hstack(np.concatenate([a, b], 3)))[..., ::-1] * 255).astype(np.uint8)
         cv2.imwrite(f"validation_imgs/validation_snr{SNR}_c{COMPRESSION_RATIO}_e{epoch:04d}.png", c)
 

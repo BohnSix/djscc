@@ -5,11 +5,11 @@ from tqdm import tqdm
 
 
 #######################################################################################
-imgs = sorted(glob("validation_imgs/validation_snr*"))[::10]
+imgs = sorted(glob("validation_imgs/validation_snr*"))
 print(f"Have {len(imgs)} images here.")
 
 video_name = 'validation.mp4'
-video=cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*'mp4v'), 60, (512*2, 256*2))
+video=cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*'mp4v'), 60, (512, 256*2))
 for i in tqdm(imgs):
     image = cv2.imread(i)
     video.write(image)
