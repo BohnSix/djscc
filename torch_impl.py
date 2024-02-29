@@ -156,15 +156,15 @@ def Calculate_filters(comp_ratio, F=8, n=3072):
 # print(filter_size)  # [2, 4, 8, 12, 16, 20, 24]
 # ###############################################################
 
-SNR = 10
-COMPRESSION_RATIO = 0.04
+SNR = 20
+COMPRESSION_RATIO = 0.49
 
 """
 rm checkpoints/*
 rm -r train_logs/*
 rm validation_imgs/*
 
-nohup python -u torch_impl.py > train_logs/snr10_c04.log 2>&1 &
+nohup python -u torch_impl.py > train_logs/snr20_c49.log 2>&1 &
 """
 
 EPOCHS = 2500
@@ -223,7 +223,7 @@ best_vloss = 1.
 change_lr_flag = True
 
 for epoch in range(1, EPOCHS+1):
-    if epoch > 640 and change_lr_flag:
+    if epoch > 1000 and change_lr_flag:
         LEARNING_RATE = LEARNING_RATE / 10
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
         change_lr_flag = False
