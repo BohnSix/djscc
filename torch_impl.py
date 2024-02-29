@@ -257,7 +257,7 @@ for epoch in range(1, EPOCHS+1):
         c = (np.hstack(np.hstack(np.concatenate([a, b], 3)))[..., ::-1] * 255).astype(np.uint8)
         cv2.imwrite(f"validation_imgs/validation_snr{SNR}_c{COMPRESSION_RATIO}_e{epoch:04d}.png", c)
 
-    avg_vloss = running_vloss  * 1e4 / TEST_IMAGE_NUM / 10
+    avg_vloss = running_vloss  * 1e4 / TEST_IMAGE_NUM / val_times
     print(f'LOSS train {avg_loss:.8f} valid {avg_vloss:.8f}')
     print(f'LOSS valid PSNR {10 * np.log10(1/avg_vloss.item()):.2f} dB. \n')
 
