@@ -3,5 +3,5 @@
 checkpoints/
 data/
 validation_imgs/
-train_logs/
+train_logs/deep*
 validation.mp4
