@@ -8,12 +8,11 @@ class Channel(nn.Module):
         self.channel_type = channel_type
         self.channel_snr = channel_snr
     
-    def awgn(self, x, stddev):
-        b, c, h, w = x.shape
-        cmplx_dist = np.random.normal(loc=0, scale=np.sqrt(2)/2, size=(b, c, h, 2*w)).view(np.complex128)
+    def awgn(self, channel_input, stddev):
+        cmplx_dist = np.random.normal(loc=0, scale=np.sqrt(2)/2, size=(2*len(channel_input))).view(np.complex128)
         cmplx_dist = torch.from_numpy(cmplx_dist).cuda()
         noise = cmplx_dist * stddev
-        return x + noise, torch.ones_like(x)
+        return channel_input + noise, torch.ones_like(channel_input)
     
     def fading(self, x, stddev, lst, h=None):
         inter_shape = x.shape
@@ -34,52 +33,49 @@ class Channel(nn.Module):
         z_out = torch.concat([torch.real(z_out), torch.imag(z_out)], 0).reshape(inter_shape)
 
         return z_out, h
+
+    def powerConstraint(self, channel_input, P):
+        print("Average power before:", torch.mean(torch.square(torch.abs(channel_input))).item())
+        # norm by total power instead of average power
+        enery = torch.sum(torch.square(torch.abs(channel_input)))
+        normalization_factor = np.sqrt(len(channel_input)*P) / torch.sqrt(enery)
+        channel_input = channel_input * normalization_factor
+
+        # the average power of output should be about P
+        print("Average power after:", torch.mean(torch.square(torch.abs(channel_input))).item())
+        
+        return channel_input
     
-    def forward(self, channal_input, P):
+    def forward(self, channel_input, P=1):
         # print("channel_snr: {}".format(self.channel_snr))
-        lst = list(channal_input.shape)
-        k = np.prod(lst)
+        lst = list(channel_input.shape)
        
         snr = 10**(self.channel_snr/10.0)
-        abs_val = torch.abs(channal_input)
-        signl_pwr = torch.sum(torch.square(abs_val)) / k
+
+        channel_input = channel_input.flatten()
+        channel_input = self.powerConstraint(channel_input, P)
+
+        signl_pwr = torch.mean(torch.square(torch.abs(channel_input)))
         noise_pwr = signl_pwr / snr
         noise_stddev = torch.sqrt(noise_pwr)
 
         if self.channel_type == "awgn":
-            channal_output, h = self.awgn(channal_input, noise_stddev, lst)
+            channal_output, h = self.awgn(channel_input, noise_stddev)
         elif self.channel_type == "fading":
-            channal_output, h = self.fading(channal_input, noise_stddev, lst)
+            channal_output, h = self.fading(channel_input, noise_stddev, lst)
+
+        channal_output = channal_output.reshape(lst)
         
         return channal_output, h
     
-
-# x = torch.randn([32, 8, 8, 8]).cuda()
-# z = torch.complex(x, torch.zeros_like(x))
-# lst = list(z.shape)[1:]
-# channel = Channel("awgn", 20).cuda()
-# outputs, h = channel(z, lst)
-# print(outputs.shape)
-
-
-# a = torch.randint(10, [2, 4]).float()
-# b = torch.randint(10, [2, 4]).float()
-
-k = 1
+k = 400
 P = 1
 
-a = np.random.normal(0, np.sqrt(1/2), [200, 4000])
-b = np.random.normal(0, np.sqrt(1/2), [200, 4000])
-c = torch.complex(torch.from_numpy(a), torch.from_numpy(b))
-c = c.flatten()
+a = np.random.normal(0, np.sqrt(2), [200, 400])
+b = np.random.normal(0, np.sqrt(2), [200, 400])
+channel_input = torch.complex(torch.from_numpy(a), torch.from_numpy(b)).cuda()
+channel = Channel("awgn", 10).cuda()
 
-c_H = torch.conj(c).T
-norm = torch.sqrt(torch.matmul(c_H, c))
-norm = torch.norm(c)
-print(norm)
-normalization_factor = np.sqrt(k*P) / norm
-z_hat = c * normalization_factor.unsqueeze(-1)  # 使用 unsqueeze 来确保维度匹配
-
-print(torch.mean(torch.square(torch.abs(c))))
+channel_output = channel(channel_input, 1)
 
 print("Done")

@@ -1,15 +1,15 @@
 # Still on construction...
 
 ## 模型架构应该没问题了，还需要处理一下功率约束的事。
-`Chap.III` 提到 `The encoder maps the n-dimensional input image x to a k-length vector of complex-valued channel input samples z`，也就是把一张`[3x32x32]`的图片映射成一个`[kx1]`的向量并进行功率约束。
+`Chap.III` 提到 `The encoder maps the n-dimensional input image x to a k-length vector of complex-valued channel input samples z`，也就是把一张`[3x32x32]`的图片映射成一个`[kx1]`的复向量并进行功率约束，这里`n=3x32x32=3072`。
 
 `Chap.III` 中给出的功率约束的公式是
 $$ z = \sqrt{kP}\frac{\tilde{z}}{\sqrt{\tilde{z}^*\tilde{z}}} $$
-其中 $\tilde{z}$ 应该是一个`[kx1]`的向量，因此分母计算得到的模长是一个归一化常数，保证整个分数的功率为`1`，并根据系数$\sqrt{kP}$进行功率约束。
+其中 $\tilde{z}$ 应该是一个`[kx1]`的向量，分母计算得到的模长是一个常数，保证整个分数的功率为`1`，并根据系数 $\sqrt{kP}$ 进行功率约束。
 
-一张图片编码成 $k$ 个符号，信号的平均功率为 $P$，总功率为 $kP$。传输 $b$ 张图片的平均功率为 $P$，总功率为 $bkP$。因此归一化因子应该是$1/\sqrt{bkP}$。
+一张图片编码成 `k` 个符号，信号的平均功率为 `P`，总功率为 `kP`。一次传输 `b` 张图片需要编码成`bK`个符号，信号的平均功率为 `P`，总功率为 `bkP`。因此归一化因子应该是$1/\sqrt{bkP}$。
 
-传输的信号拉直成`[bk, 1]`，信噪比为`snr`，噪声向量的形状也是`[bk, 1]`，总功率为`bkP/snr`.
+传输的信号拉直成`[bk, 1]`，信噪比为`snr`，噪声向量的形状也是`[bk, 1]`，总功率为`bkP/snr`，即噪声服从高斯分布$N(0, \sqrt{bkP})$.
 
 
 ##  训练过程应该没有问题，需要重构并封装一下

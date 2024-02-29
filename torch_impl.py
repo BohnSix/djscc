@@ -68,28 +68,45 @@ class Channel(nn.Module):
         super().__init__()
         self.channel_type = channel_type
         self.channel_snr = channel_snr
+        self.snr = 10**(self.channel_snr/10.0)
+    
+    def awgn(self, channel_input, stddev):
+        cmplx_dist = np.random.normal(loc=0, scale=np.sqrt(2)/2, size=(2*len(channel_input))).view(np.complex128)
+        cmplx_dist = torch.from_numpy(cmplx_dist).cuda()
+        noise = cmplx_dist * stddev
+        return channel_input + noise, torch.ones_like(channel_input)
+    
+    def fading(self, x, stddev, lst, h=None):
+        inter_shape = x.shape
+        z = x.reshape(inter_shape[0], -1)
+        print(z.shape)
+        z_dim = z.shape[1] // 2
+        z_in = torch.complex(z[:, :z_dim], z[:, z_dim:])
+        print(z_in.shape)
+        # z_norm = torch.sum(torch.real(z_in * torch.mH(z_in)))  # TODO: z norm
+        # print(z_norm.shape)
+        
+        if h is None:  # TODO: check this
+            h = torch.randn(z_in.shape, dtype=torch.complex128)  
+        awgn = torch.randn(z_in.shape, dtype=torch.complex128)
+        
+        z_out = h * z_in + awgn
 
-    def awgn(self, x, noise_pwr):
-        cmplx_dist_real = torch.from_numpy(np.random.normal(0, np.sqrt(noise_pwr/2), size=x.shape))
-        cmplx_dist_real = torch.from_numpy(np.random.normal(0, np.sqrt(noise_pwr/2), size=x.shape))
-        noise = torch.complex(cmplx_dist_real, cmplx_dist_real).cuda()
-        return x + noise
+        z_out = torch.concat([torch.real(z_out), torch.imag(z_out)], 0).reshape(inter_shape)
 
-    def forward(self, channel_input, P):
+        return z_out, h
+    
+    def forward(self, channel_input):
         # print("channel_snr: {}".format(self.channel_snr))
-
-        b, c, h, w = list(channel_input.shape)
-        z = channel_input.reshape(b, -1).permute(1, 0)
-        k = z.shape[0]
-
-        snr = 10**(self.channel_snr/10.0)
-        abs_val = torch.abs(z)
-        signl_pwr = torch.sum(torch.square(abs_val), 1) / k
-        noise_pwr = P / snr
+       
+        signl_pwr = torch.mean(torch.square(torch.abs(channel_input)))
+        noise_pwr = signl_pwr / self.snr
+        noise_stddev = torch.sqrt(noise_pwr)
 
         if self.channel_type == "awgn":
-            channal_output = self.awgn(channel_input, noise_pwr)
-            H = torch.ones_like(channel_input)
+            channal_output, H = self.awgn(channel_input, noise_stddev)
+        elif self.channel_type == "fading":
+            channal_output, H = self.fading(channel_input, noise_stddev)
 
         return channal_output, H
 
@@ -100,18 +117,26 @@ class JSCC(nn.Module):
         self.channel = Channel("awgn", snr_db)
         self.decoder = Decoder(conv_depth)
 
-    def powerConstraint(self, x, P=1):
-        b, k = x.shape
-
-        x = torch.sqrt(k*P)
-
-        return x
+    def powerConstraint(self, channel_input, P):
+        # norm by total power instead of average power
+        enery = torch.sum(torch.square(torch.abs(channel_input)))
+        normalization_factor = np.sqrt(len(channel_input)*P) / torch.sqrt(enery)
+        channel_input = channel_input * normalization_factor
+        # the average power of output should be about P
+        
+        return channel_input
 
     def forward(self, inputs, snr_db=10, P=1):
         prev_chn_gain = None
         chn_in = self.encoder(inputs)
+        lst = list(chn_in.shape)
 
-        chn_out, h = self.channel(chn_in, P=1)
+        chn_in = chn_in.flatten()
+        chn_in = self.powerConstraint(chn_in, P)
+
+        chn_out, h = self.channel(chn_in)
+
+        chn_out = chn_out.reshape(lst)
 
         decoded_img = self.decoder(chn_out)
 
@@ -132,7 +157,7 @@ def Calculate_filters(comp_ratio, F=8, n=3072):
 # ###############################################################
 
 SNR = 10
-COMPRESSION_RATIO = 0.49
+COMPRESSION_RATIO = 0.04
 
 """
 rm checkpoints/*
@@ -214,7 +239,11 @@ for epoch in range(1, EPOCHS+1):
     model.eval()
 
     with torch.no_grad():
-        for _ in range(10):
+        if epoch > 2000:
+            val_times = 10
+        else:
+            val_times = 1
+        for _ in range(val_times):
             for i, vdata in enumerate(testloader):
                 vinputs, vlabels = vdata
                 vinputs = vinputs.cuda()
