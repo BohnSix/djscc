@@ -1,5 +1,3 @@
-# Still on construction...
-
 <!-- ## 模型架构应该没问题了，还需要处理一下功率约束的事。
 `Chap.III` 提到 `The encoder maps the n-dimensional input image x to a k-length vector of complex-valued channel input samples z`，也就是把一张`[3x32x32]`的图片映射成一个`[kx1]`的复向量并进行功率约束，这里`n=3x32x32=3072`。
 
