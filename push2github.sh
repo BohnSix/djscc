@@ -1,5 +1,5 @@
 git add .
-git commit -m "update on 0229"
+git commit -m "update experimental results"
 
 echo "Start pushing..."
 

@@ -13,6 +13,14 @@
 
 
 ##  训练过程应该没有问题，需要重构并封装一下 -->
+<!-- 
+在瑞利衰落信道模型中，信道矩阵的元素通常不是直接服从正态分布 $N(0, 1)$。相反，瑞利衰落信道模型中的信道矩阵元素的幅度服从瑞利分布，而相位则在 $[0,2\pi)$ 范围内均匀分布。这是因为瑞利衰落信道模型通常用于描述在无视距（Line of Sight, LoS）条件下的多径传播环境，其中多个反射和散射的信号分量相互叠加，导致接收信号的幅度和相位发生变化。
+
+在瑞利衰落模型中，每个信道矩阵元素可以视为多个独立同分布的复数随机变量之和，其中实部和虚部各自独立地遵循均值为$0$、方差为 $\sigma^2/2$ 的正态分布。这里的 $\sigma^2$ 表示信号分量的总功率，通常取决于特定的环境和系统参数。当这些独立的复数随机变量叠加时，由于中心极限定理，复信号的幅度将遵循瑞利分布，而相位将在 [0,2π) 范围内均匀分布。
+
+因此，如果你正在处理瑞利衰落信道的信道矩阵，你应该期望每个元素的实部和虚部分别服从均值为0、方差为 $\sigma^2/2$ 的正态分布，从而使每个元素的幅度服从瑞利分布。方差 $\sigma^2/2$ 的选择取决于信道的具体条件和系统要求，而不一定是1。如果  $\sigma^2=1$ ，那么实部和虚部的方差就是 $1/2$，这种情况下信道模型反映了单位总功率的假设。 -->
+
+
 
 
 # Launch Records
@@ -21,7 +29,7 @@
 
 Reimplement [Deep Joint Source-Channel Coding for Wireless Image Transmission](https://arxiv.org/abs/1809.01733) in Pytorch, but **FAILED** to reach the performance mentioned in literature.
 
-Thanks to [irdanish11 implemantation](https://github.com/irdanish11/DJSCC-for-Wireless-Image-Transmission) and [Ahmedest61 implemantation](https://github.com/Ahmedest61/D-JSCC). 
+Thanks to [irdanish11's implemantation](https://github.com/irdanish11/DJSCC-for-Wireless-Image-Transmission) and [Ahmedest61's implemantation](https://github.com/Ahmedest61/D-JSCC). 
 
 ![djscc_performance](resources/djscc_performance.png)
 

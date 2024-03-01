@@ -18,7 +18,6 @@ import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
 
 
-
 class Encoder(nn.Module):
     def __init__(self, conv_depth):
         super().__init__()
@@ -76,23 +75,20 @@ class Channel(nn.Module):
         noise = cmplx_dist * stddev
         return channel_input + noise, torch.ones_like(channel_input)
     
-    def fading(self, x, stddev, lst, h=None):
-        inter_shape = x.shape
-        z = x.reshape(inter_shape[0], -1)
-        print(z.shape)
-        z_dim = z.shape[1] // 2
-        z_in = torch.complex(z[:, :z_dim], z[:, z_dim:])
-        print(z_in.shape)
-        # z_norm = torch.sum(torch.real(z_in * torch.mH(z_in)))  # TODO: z norm
-        # print(z_norm.shape)
+    def fading(self, x, stddev, h=None):
+        z = torch.real(x)
+        z_dim = len(z) // 2
+        z_in = torch.complex(z[:z_dim], z[z_dim:])
         
-        if h is None:  # TODO: check this
-            h = torch.randn(z_in.shape, dtype=torch.complex128)  
-        awgn = torch.randn(z_in.shape, dtype=torch.complex128)
-        
-        z_out = h * z_in + awgn
+        if h is None:
+            h = torch.complex(torch.from_numpy(np.random.normal(0, np.sqrt(2)/2, z_in.shape)), 
+                              torch.from_numpy(np.random.normal(0, np.sqrt(2)/2, z_in.shape)))
+        noise = torch.complex(torch.from_numpy(np.random.normal(0, np.sqrt(2)/2, z_in.shape)), 
+                              torch.from_numpy(np.random.normal(0, np.sqrt(2)/2, z_in.shape)))
+        h, noise = h.cuda(), noise.cuda()
+        z_out = h * z_in + noise * stddev
 
-        z_out = torch.concat([torch.real(z_out), torch.imag(z_out)], 0).reshape(inter_shape)
+        z_out = torch.concat([torch.real(z_out), torch.imag(z_out)], 0)
 
         return z_out, h
     
@@ -157,6 +153,7 @@ def Calculate_filters(comp_ratio, F=8, n=3072):
 # ###############################################################
 
 SNR = 20
+CHANNEL_TYPE = "fading"
 COMPRESSION_RATIO = 0.49
 
 """
@@ -164,13 +161,12 @@ rm checkpoints/*
 rm -r train_logs/*
 rm validation_imgs/*
 
-nohup python -u torch_impl.py > train_logs/snr20_c49.log 2>&1 &
+nohup python -u torch_impl.py > train_logs/fading_snr20_c49.log 2>&1 &
 """
 
 EPOCHS = 2500
 NUM_WORKERS = 4
 LEARNING_RATE = 0.001
-CHANNEL_TYPE = "awgn"
 CHANNEL_SNR_TRAIN = 10
 TRAIN_IMAGE_NUM = 50000
 TEST_IMAGE_NUM = 10000
@@ -184,8 +180,6 @@ trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=TRAIN_BS, shuffle=True, num_workers=NUM_WORKERS)
 testloader = torch.utils.data.DataLoader(testset, batch_size=TEST_BS, shuffle=False, num_workers=NUM_WORKERS)
-
-image_dim = 32 * 32 * 3
 
 model = JSCC(K, snr_db=SNR).cuda()
 
@@ -222,6 +216,8 @@ writer = SummaryWriter(f'train_logs/deepjscc_{CHANNEL_TYPE}_snr{SNR}_c{COMPRESSI
 best_vloss = 1.
 change_lr_flag = True
 
+print("Training on CHANNEL {} and SNR {} dB at {}.\n\n\n")
+
 for epoch in range(1, EPOCHS+1):
     if epoch > 1000 and change_lr_flag:
         LEARNING_RATE = LEARNING_RATE / 10
@@ -255,7 +251,7 @@ for epoch in range(1, EPOCHS+1):
         a = vinputs[:128].detach().cpu().numpy().reshape(16, 8, 3, 32, 32).transpose(0, 1, 3, 4, 2)
         b = decoded_img[:128].detach().cpu().numpy().reshape(16, 8, 3, 32, 32).transpose(0, 1, 3, 4, 2)
         c = (np.hstack(np.hstack(np.concatenate([a, b], 3)))[..., ::-1] * 255).astype(np.uint8)
-        cv2.imwrite(f"validation_imgs/validation_snr{SNR}_c{COMPRESSION_RATIO}_e{epoch:04d}.png", c)
+        cv2.imwrite(f"validation_imgs/validation_{CHANNEL_TYPE}_snr{SNR}_c{COMPRESSION_RATIO}_e{epoch:04d}.png", c)
 
     avg_vloss = running_vloss  * 1e4 / TEST_IMAGE_NUM / val_times
     print(f'LOSS train {avg_loss:.8f} valid {avg_vloss:.8f}')
@@ -271,4 +267,3 @@ for epoch in range(1, EPOCHS+1):
         best_vloss = avg_vloss
         model_path = f'checkpoints/deepjscc_{CHANNEL_TYPE}_snr{SNR}_c{COMPRESSION_RATIO}_e{epoch:03d}.ckpt'
         torch.save(model.state_dict(), model_path)
-

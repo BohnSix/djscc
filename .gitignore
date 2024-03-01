@@ -3,6 +3,6 @@
 checkpoints/
 data/
 validation_imgs/
-train_logs/deep*
+train_logs/
 validation.mp4
 generate_videos.py
