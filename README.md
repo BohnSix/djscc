@@ -27,11 +27,12 @@
 
 ## Introduction
 
-Reimplement [Deep Joint Source-Channel Coding for Wireless Image Transmission](https://arxiv.org/abs/1809.01733) in Pytorch, but **FAILED** to reach the performance mentioned in literature.
+Reimplement [Deep Joint Source-Channel Coding for Wireless Image Transmission](https://arxiv.org/abs/1809.01733) in Pytorch, but **FAILED** to reach the performance reported in literature.
 
 Thanks to [irdanish11's implemantation](https://github.com/irdanish11/DJSCC-for-Wireless-Image-Transmission) and [Ahmedest61's implemantation](https://github.com/Ahmedest61/D-JSCC). 
 
-![djscc_performance](resources/djscc_performance.png)
+![awgn_performance](resources/awgn_performance.png)
+![slowfading_performance](resources/slowfading_performance.png)
 
 
 
@@ -46,7 +47,7 @@ Use `Adam` optimizer，`batch size` set to `8192`, `learning rate` set to `1e-3`
 
 Train with `SNR` and `compression rate`, where`SNR`varies in `[0, 10, 20]`，`compression rate` varies in `[0.04, 0.09, 0.17, 0.25, 0.33, 0.42, 0.49]`, namely `channel width` varies in `[2, 4, 8, 12, 16, 20, 24]`.
 
-During performance evaluation transmit each image `10` times in order to mitigate the effect of randomness introduced by the communication channel.
+During performance evaluation transmit each image `10` times in order to mitigate the effect of randomness introduced by the communication channel(After 2000 epochs).
 
 
 ## Model Metric
@@ -57,15 +58,26 @@ During performance evaluation transmit each image `10` times in order to mitigat
 
 - Computational Cost：`7s * 2500epochs / 3600 ~= 5h` on a single `4090Ti`
 
-## Experimental result
+## Experimental results
+
 
 **Unable to achieve the performance mentioned in literature**.
+|Channel type| Channel SNR |Compression Ratio|EXPERIMENTAL PSNR| REPORTED PSNR|
+| :---: | :---: | :---: | :---: | :---: |
+|AWGN|10dB|0.04|17.62dB|~25dB|
+|AWGN|20dB|0.49|25.12dB|~37dB|
+|Fading|20dB|0.04| -- | |
+|Fading|20dB|0.49|25.12dB|~30dB|
+
+![awgn_training_loss](resources/awgn.png)
+![slowfading_training_loss](resources/fading.png)
+
 
 See [Visualization](visualization.md) for details.
 
-![Validation Loss](resources/valid_loss.png)
+<!-- ![Validation Loss](resources/valid_loss.png)
 
-![Model performance](result.png)
+![Model performance](result.png) -->
 
 
 
