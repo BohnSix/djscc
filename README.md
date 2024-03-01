@@ -62,7 +62,7 @@ During performance evaluation transmit each image `10` times in order to mitigat
 
 
 **Unable to achieve the performance mentioned in literature**.
-|Channel type| Channel SNR |Compression Ratio|EXPERIMENTAL PSNR| REPORTED PSNR|
+|Channel Type| Channel SNR |Compression Ratio|Experimental PSNR| Reported PSNR|
 | :---: | :---: | :---: | :---: | :---: |
 |AWGN|10dB|0.04|17.62dB|~25dB|
 |AWGN|20dB|0.49|25.12dB|~37dB|
