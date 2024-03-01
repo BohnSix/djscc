@@ -69,7 +69,10 @@ During performance evaluation transmit each image `10` times in order to mitigat
 |Fading|20dB|0.04| -- | |
 |Fading|20dB|0.49|25.12dB|~30dB|
 
+Training loss on AWGN channel
 ![awgn_training_loss](resources/awgn.png)
+
+Training loss on slow fading channel
 ![slowfading_training_loss](resources/fading.png)
 
 
