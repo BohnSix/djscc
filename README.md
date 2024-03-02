@@ -41,11 +41,11 @@ Using an `AutoEncoder`to compress image from `[b, 3, H, W]` to feature maps with
 
 ## Experimental setup
 
-Use `Adam` optimizer，`batch size` set to `8192`, `learning rate` set to `1e-3`, and update to `1e-4` after 1000 `epoch`. Train 2500 `epoch` in total.
+Use `Adam` optimizer，`batch size` set to `8192`, `learning rate` set to `1e-3`, and update to `1e-4` after `2000 epoch`. Train `2500 epoch` in total.
 
 Train with `SNR` and `compression rate`, where`SNR`varies in `[0, 10, 20]`，`compression rate` varies in `[0.04, 0.09, 0.17, 0.25, 0.33, 0.42, 0.49]`, namely `channel width` varies in `[2, 4, 8, 12, 16, 20, 24]`.
 
-During performance evaluation transmit each image `10` times in order to mitigate the effect of randomness introduced by the communication channel(After 2000 epochs).
+During performance evaluation transmit each image `10` times in order to mitigate the effect of randomness introduced by the communication channel(After `2000 epoch`).
 
 
 ## Model Metric

@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import cv2
 import json
 import time
@@ -152,8 +152,8 @@ def Calculate_filters(comp_ratio, F=8, n=3072):
 # print(filter_size)  # [2, 4, 8, 12, 16, 20, 24]
 # ###############################################################
 
-SNR = 20
-CHANNEL_TYPE = "fading"
+SNR = 10
+CHANNEL_TYPE = "awgn"
 COMPRESSION_RATIO = 0.49
 
 """
@@ -161,7 +161,7 @@ rm checkpoints/*
 rm -r train_logs/*
 rm validation_imgs/*
 
-nohup python -u torch_impl.py > train_logs/fading_snr20_c49.log 2>&1 &
+nohup python -u torch_impl.py > train_logs/awgn_snr10_c49.log 2>&1 &
 """
 
 EPOCHS = 2500
@@ -216,7 +216,8 @@ writer = SummaryWriter(f'train_logs/deepjscc_{CHANNEL_TYPE}_snr{SNR}_c{COMPRESSI
 best_vloss = 1.
 change_lr_flag = True
 
-print("Training on CHANNEL {} and SNR {} dB at {}.\n\n\n")
+print(f"""Training on CHANNEL {CHANNEL_TYPE}, Compression Ratio {COMPRESSION_RATIO} and 
+      SNR {SNR} dB at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.\n\n\n""")
 
 for epoch in range(1, EPOCHS+1):
     if epoch > 1000 and change_lr_flag:
