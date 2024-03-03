@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 import cv2
 import json
 import time
@@ -21,6 +21,7 @@ from torch.utils.tensorboard import SummaryWriter
 class Encoder(nn.Module):
     def __init__(self, conv_depth):
         super().__init__()
+        self.conv_depth = conv_depth
         self.sublayers = nn.ModuleList([
             nn.Conv2d(3, 16, 5, 2, 2),
             nn.PReLU(),
@@ -30,7 +31,7 @@ class Encoder(nn.Module):
             nn.PReLU(),
             nn.Conv2d(32, 32, 5, 1, 2),
             nn.PReLU(),
-            nn.Conv2d(32, conv_depth, 5, 1, 2),
+            nn.Conv2d(32, conv_depth*2, 5, 1, 2),
             nn.PReLU(),
         ])
 
@@ -38,13 +39,13 @@ class Encoder(nn.Module):
         for layer in self.sublayers:
             x = layer(x)
         # return x.type(torch.complex64)
-        return torch.complex(x, torch.zeros_like(x))
+        return torch.complex(x[: , :self.conv_depth], x[: , self.conv_depth:])
 
 class Decoder(nn.Module):
     def __init__(self, conv_depth):
         super().__init__()
         self.sublayers = nn.ModuleList([
-            nn.ConvTranspose2d(conv_depth, 32, 5, 1, 2),
+            nn.ConvTranspose2d(conv_depth*2, 32, 5, 1, 2),
             nn.PReLU(),
             nn.ConvTranspose2d(32, 32, 5, 1, 2),
             nn.PReLU(),
@@ -57,7 +58,7 @@ class Decoder(nn.Module):
         ])
 
     def forward(self, x):
-        x = torch.real(x).float()
+        x = torch.concat([torch.real(x), torch.imag(x)], 1).float()
         for layer in self.sublayers:
             x = layer(x)
         return x
@@ -129,6 +130,7 @@ class JSCC(nn.Module):
 
         chn_in = chn_in.flatten()
         chn_in = self.powerConstraint(chn_in, P)
+        # print(torch.mean(torch.square(torch.abs(chn_in))))
 
         chn_out, h = self.channel(chn_in)
 
@@ -152,7 +154,7 @@ def Calculate_filters(comp_ratio, F=8, n=3072):
 # print(filter_size)  # [2, 4, 8, 12, 16, 20, 24]
 # ###############################################################
 
-SNR = 10
+SNR = 20
 CHANNEL_TYPE = "awgn"
 COMPRESSION_RATIO = 0.49
 
@@ -161,7 +163,7 @@ rm checkpoints/*
 rm -r train_logs/*
 rm validation_imgs/*
 
-nohup python -u torch_impl.py > train_logs/awgn_snr10_c49.log 2>&1 &
+nohup python -u torch_impl.py > train_logs/awgn_snr20_c49.log 2>&1 &
 """
 
 EPOCHS = 2500
@@ -216,11 +218,10 @@ writer = SummaryWriter(f'train_logs/deepjscc_{CHANNEL_TYPE}_snr{SNR}_c{COMPRESSI
 best_vloss = 1.
 change_lr_flag = True
 
-print(f"""Training on CHANNEL {CHANNEL_TYPE}, Compression Ratio {COMPRESSION_RATIO} and 
-      SNR {SNR} dB at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.\n\n\n""")
+print(f"""Training on CHANNEL {CHANNEL_TYPE}, Compression Ratio {COMPRESSION_RATIO} and SNR {SNR} dB at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.\n\n\n""")
 
 for epoch in range(1, EPOCHS+1):
-    if epoch > 1000 and change_lr_flag:
+    if epoch > 2000 and change_lr_flag:
         LEARNING_RATE = LEARNING_RATE / 10
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
         change_lr_flag = False
