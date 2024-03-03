@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import cv2
 import json
 import time
@@ -154,16 +154,16 @@ def Calculate_filters(comp_ratio, F=8, n=3072):
 # print(filter_size)  # [2, 4, 8, 12, 16, 20, 24]
 # ###############################################################
 
-SNR = 20
+SNR = 10
 CHANNEL_TYPE = "awgn"
-COMPRESSION_RATIO = 0.49
+COMPRESSION_RATIO = 0.09
 
 """
 rm checkpoints/*
 rm -r train_logs/*
 rm validation_imgs/*
 
-nohup python -u torch_impl.py > train_logs/awgn_snr20_c49.log 2>&1 &
+nohup python -u torch_impl.py > train_logs/awgn_snr10_c09.log 2>&1 &
 """
 
 EPOCHS = 2500
