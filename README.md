@@ -71,14 +71,6 @@ During performance evaluation transmit each image `10` times in order to mitigat
 
 
 
-
-Training loss on AWGN channel
-![awgn_training_loss](resources/awgn.png)
-
-Training loss on slow fading channel
-![slowfading_training_loss](resources/fading.png)
-
-
 See [Visualization](visualization.md) for details.
 
 <!-- ![Validation Loss](resources/valid_loss.png)
