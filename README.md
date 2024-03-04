@@ -65,9 +65,13 @@ During performance evaluation transmit each image `10` times in order to mitigat
 |AWGN|20dB|0.17|23.77dB|~34dB|
 |AWGN|20dB|0.25|22.52dB|~36dB|
 |AWGN|20dB|0.33|23.87dB|~37dB|
-|AWGN|20dB|0.42|20.97dB|~37dB|
+|AWGN|20dB|0.42|23.37dB|~37dB|
 |AWGN|20dB|0.49|23.77dB|~37dB|
 
+
+There is still a gap. 
+
+![exp_performance](resources/experiments.png)
 
 
 

@@ -1,5 +1,5 @@
 git add .
-git commit -m "update visualization results"
+git commit -m "update experimental results"
 
 echo "Start pushing..."
 

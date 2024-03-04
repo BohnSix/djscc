@@ -189,9 +189,8 @@ model = JSCC(K, snr_db=SNR).cuda()
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 loss_fn = nn.MSELoss()
 
-def train_one_epoch(epoch_index, tb_writer):
+def train_one_epoch(epoch_index):
     running_loss = 0.
-    last_loss = 0.
 
     for i, data in enumerate(trainloader):
         inputs, labels = data
@@ -204,12 +203,7 @@ def train_one_epoch(epoch_index, tb_writer):
         optimizer.step()
 
         running_loss += loss.item()
-        # if i % 1000 == 999:
-        #     last_loss = running_loss / 1000 # loss per batch
-        #     print('  batch {} loss: {}'.format(i + 1, last_loss))
-        #     tb_x = epoch_index * len(trainloader) + i + 1
-        #     tb_writer.add_scalar('Loss/train', last_loss, tb_x)
-        #     running_loss = 0.
+
 
     return running_loss
 
@@ -231,7 +225,7 @@ for epoch in range(1, EPOCHS+1):
     print(f'EPOCH {epoch:03d} starts at {cur}')
 
     model.train(True)
-    avg_loss = train_one_epoch(epoch, writer) * 1e4 / TRAIN_IMAGE_NUM
+    avg_loss = train_one_epoch(epoch) * 1e4 / TRAIN_IMAGE_NUM
 
     running_vloss = 0.0
     model.eval()
