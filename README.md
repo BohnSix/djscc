@@ -29,8 +29,8 @@ Reimplement [Deep Joint Source-Channel Coding for Wireless Image Transmission](h
 
 Thanks to [irdanish11's implemantation](https://github.com/irdanish11/DJSCC-for-Wireless-Image-Transmission) and [Ahmedest61's implemantation](https://github.com/Ahmedest61/D-JSCC). 
 
-![awgn_performance](resources/awgn_performance.png)
-![slowfading_performance](resources/slowfading_performance.png)
+![awgn_performance](resources/performance_awgn.png)
+![slowfading_performance](resources/performance_fading.png)
 
 
 
