@@ -41,11 +41,11 @@ Using an `AutoEncoder`to compress image from `[b, 3, H, W]` to feature maps with
 
 ## Experimental setup
 
-Use `Adam` optimizer，`batch size` set to `8192`, `learning rate` set to `1e-3`, and update to `1e-4` after `2000 epoch`. Train `2500 epoch` in total.
+Use `Adam` optimizer，`batch size` set to `64`, `learning rate` set to `1e-3`, and update to `1e-4` after `640 epoch`. Train `1000 epoch` in total.
 
 Train with `SNR` and `compression rate`, where`SNR`varies in `[0, 10, 20]`，`compression rate` varies in `[0.04, 0.09, 0.17, 0.25, 0.33, 0.42, 0.49]`, namely `channel width` varies in `[2, 4, 8, 12, 16, 20, 24]`.
 
-During performance evaluation transmit each image `10` times in order to mitigate the effect of randomness introduced by the communication channel(After `2000 epoch`).
+<!-- During performance evaluation transmit each image `10` times in order to mitigate the effect of randomness introduced by the communication channel(After `2000 epoch`). -->
 
 
 ## Model Metric
@@ -54,19 +54,9 @@ During performance evaluation transmit each image `10` times in order to mitigat
 
 - Performance Metric：`PSNR`
 
-- Computational Cost：`7s * 2500epochs / 3600 ~= 5h` on a single `4090Ti`
+- Computational Cost：`20s * 1000epochs / 3600 ~= 5.6h` with single `4090Ti`
 
 ## Experimental results
-
-|Channel Type| Channel SNR |Compression Ratio|Experimental PSNR| Reported PSNR|
-| :---: | :---: | :---: | :---: | :---: |
-|AWGN|20dB|0.04|20.56dB|~27dB|
-|AWGN|20dB|0.09|22.08dB|~31dB|
-|AWGN|20dB|0.17|23.77dB|~34dB|
-|AWGN|20dB|0.25|22.52dB|~36dB|
-|AWGN|20dB|0.33|23.87dB|~37dB|
-|AWGN|20dB|0.42|23.37dB|~37dB|
-|AWGN|20dB|0.49|23.77dB|~37dB|
 
 
 There is still a gap. 

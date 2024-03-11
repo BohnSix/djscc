@@ -6,3 +6,5 @@ validation_imgs/
 train_logs/
 validation.mp4
 generate_videos.py
+test.py
+push2github.sh

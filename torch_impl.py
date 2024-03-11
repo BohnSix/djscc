@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 import cv2
 import json
 import time
@@ -154,25 +154,25 @@ def Calculate_filters(comp_ratio, F=8, n=3072):
 # print(filter_size)  # [2, 4, 8, 12, 16, 20, 24]
 # ###############################################################
 
-SNR = 10
+SNR = 20
 CHANNEL_TYPE = "awgn"
-COMPRESSION_RATIO = 0.09
+COMPRESSION_RATIO = 0.33
 
 """
 rm checkpoints/*
 rm -r train_logs/*
 rm validation_imgs/*
 
-nohup python -u torch_impl.py > train_logs/awgn_snr10_c09.log 2>&1 &
+nohup python -u torch_impl.py > train_logs/awgn_snr20_c33.log 2>&1 &
 """
 
-EPOCHS = 2500
+EPOCHS = 1000
 NUM_WORKERS = 4
 LEARNING_RATE = 0.001
 CHANNEL_SNR_TRAIN = 10
 TRAIN_IMAGE_NUM = 50000
 TEST_IMAGE_NUM = 10000
-TRAIN_BS = 8192
+TRAIN_BS = 64
 TEST_BS = 4096
 K = Calculate_filters(COMPRESSION_RATIO)
 
@@ -207,15 +207,15 @@ def train_one_epoch(epoch_index):
 
     return running_loss
 
-writer = SummaryWriter(f'train_logs/deepjscc_{CHANNEL_TYPE}_snr{SNR}_c{COMPRESSION_RATIO}')
+writer = SummaryWriter(f'train_logs/deepjscc_{CHANNEL_TYPE}_snr{SNR:02d}_c{COMPRESSION_RATIO}')
 
 best_vloss = 1.
 change_lr_flag = True
 
-print(f"""Training on CHANNEL {CHANNEL_TYPE}, Compression Ratio {COMPRESSION_RATIO} and SNR {SNR} dB at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.\n\n\n""")
+print(f"""Training on CHANNEL {CHANNEL_TYPE}, Compression Ratio {COMPRESSION_RATIO} and SNR {SNR:02d} dB at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.\n\n\n""")
 
 for epoch in range(1, EPOCHS+1):
-    if epoch > 2000 and change_lr_flag:
+    if epoch > 640 and change_lr_flag:
         LEARNING_RATE = LEARNING_RATE / 10
         optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
         change_lr_flag = False
@@ -247,7 +247,7 @@ for epoch in range(1, EPOCHS+1):
         a = vinputs[:128].detach().cpu().numpy().reshape(16, 8, 3, 32, 32).transpose(0, 1, 3, 4, 2)
         b = decoded_img[:128].detach().cpu().numpy().reshape(16, 8, 3, 32, 32).transpose(0, 1, 3, 4, 2)
         c = (np.hstack(np.hstack(np.concatenate([a, b], 3)))[..., ::-1] * 255).astype(np.uint8)
-        cv2.imwrite(f"validation_imgs/validation_{CHANNEL_TYPE}_snr{SNR}_c{COMPRESSION_RATIO}_e{epoch:04d}.png", c)
+        cv2.imwrite(f"validation_imgs/validation_{CHANNEL_TYPE}_snr{SNR:02d}_c{COMPRESSION_RATIO}_e{epoch:04d}.png", c)
 
     avg_vloss = running_vloss  * 1e4 / TEST_IMAGE_NUM / val_times
     print(f'LOSS train {avg_loss:.8f} valid {avg_vloss:.8f}')
@@ -261,5 +261,5 @@ for epoch in range(1, EPOCHS+1):
     # Track best performance, and save the model's state
     if avg_vloss < best_vloss:
         best_vloss = avg_vloss
-        model_path = f'checkpoints/deepjscc_{CHANNEL_TYPE}_snr{SNR}_c{COMPRESSION_RATIO}_e{epoch:03d}.ckpt'
+        model_path = f'checkpoints/deepjscc_{CHANNEL_TYPE}_snr{SNR:02d}_c{COMPRESSION_RATIO}_e{epoch:03d}.ckpt'
         torch.save(model.state_dict(), model_path)

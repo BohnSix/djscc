@@ -1,61 +1,115 @@
 import numpy as np
-from pyldpc import make_ldpc, encode, decode, get_message
-from scipy.special import erfinv
-from commpy.modulation import QAMModem
+import torch
+from torch import nn
 
-def snr_to_noise_var(snr_db):
-    # 将SNR(dB)转换为噪声方差
-    return 10.0**(-snr_db / 10.0)
+# class Channel(nn.Module):
+#     def __init__(self, channel_type, channel_snr):
+#         super().__init__()
+#         self.channel_type = channel_type
+#         self.channel_snr = channel_snr
+    
+#     def awgn(self, x, stddev):
+#         b, c, h, w = x.shape
+#         cmplx_dist = np.random.normal(loc=0, scale=np.sqrt(2)/2, size=(b, c, h, 2*w)).view(np.complex128)
+#         cmplx_dist = torch.from_numpy(cmplx_dist).cuda()
+#         noise = cmplx_dist * stddev
+#         return x + noise, torch.ones_like(x)
+    
+#     def fading(self, x, stddev, lst, h=None):
+#         inter_shape = x.shape
+#         z = x.reshape(inter_shape[0], -1)
+#         print(z.shape)
+#         z_dim = z.shape[1] // 2
+#         z_in = torch.complex(z[:, :z_dim], z[:, z_dim:])
+#         print(z_in.shape)
+#         # z_norm = torch.sum(torch.real(z_in * torch.mH(z_in)))  # TODO: z norm
+#         # print(z_norm.shape)
+        
+#         if h is None:  # TODO: check this
+#             h = torch.randn(z_in.shape, dtype=torch.complex128)  
+#         awgn = torch.randn(z_in.shape, dtype=torch.complex128)
+        
+#         z_out = h * z_in + awgn
 
-def simulate_ldpc_qam_awgn(codelength, coderate, snr_dbs):
-    n = codelength
-    k = int(codelength * coderate)
-    d_v = 4
-    d_c = int(d_v / coderate)
+#         z_out = torch.concat([torch.real(z_out), torch.imag(z_out)], 0).reshape(inter_shape)
 
-    # 生成LDPC码
-    H, G = make_ldpc(n, d_v, d_c, systematic=True, sparse=True)
+#         return z_out, h
+    
+#     def forward(self, channal_input, P):
+#         # print("channel_snr: {}".format(self.channel_snr))
+#         lst = list(channal_input.shape)
+#         k = np.prod(lst)
+       
+#         snr = 10**(self.channel_snr/10.0)
+#         abs_val = torch.abs(channal_input)
+#         signl_pwr = torch.sum(torch.square(abs_val)) / k
+#         noise_pwr = signl_pwr / snr
+#         noise_stddev = torch.sqrt(noise_pwr)
 
-    # 初始化16QAM调制解调器
-    qam_modem = QAMModem(16)
+#         if self.channel_type == "awgn":
+#             channal_output, h = self.awgn(channal_input, noise_stddev, lst)
+#         elif self.channel_type == "fading":
+#             channal_output, h = self.fading(channal_input, noise_stddev, lst)
+        
+#         return channal_output, h
+    
 
-    for snr_db in snr_dbs:
-        noise_var = snr_to_noise_var(snr_db)
+# # x = torch.randn([32, 8, 8, 8]).cuda()
+# # z = torch.complex(x, torch.zeros_like(x))
+# # lst = list(z.shape)[1:]
+# # channel = Channel("awgn", 20).cuda()
+# # outputs, h = channel(z, lst)
+# # print(outputs.shape)
 
-        # 生成随机信息位
-        _, k = G.shape
-        v = np.random.randint(0, 2, k)
 
-        # LDPC编码
-        encoded_bits = encode(G, v, snr_db)
+# # a = torch.randint(10, [2, 4]).float()
+# # b = torch.randint(10, [2, 4]).float()
 
-        # 确保encoded_bits的长度是4的倍数，以适应16-QAM调制
-        encoded_bits = np.where(encoded_bits > 0, 1, 0)
+# k = 4000
+# P = 1
 
-        # 16QAM调制
-        modulated_signal = qam_modem.modulate(encoded_bits)
+# a = np.random.normal(0, np.sqrt(1/2), [200, 4000])
+# b = np.random.normal(0, np.sqrt(1/2), [200, 4000])
+# c = torch.complex(torch.from_numpy(a), torch.from_numpy(b))
+# c = c.flatten()
 
-        # 通过AWGN信道
-        noise = np.sqrt(noise_var / 2) * (np.random.randn(*modulated_signal.shape) + 1j * np.random.randn(*modulated_signal.shape))
-        received_signal = modulated_signal + noise
+# c_H = torch.conj(c).T
+# norm = torch.sqrt(torch.matmul(c_H, c))
+# norm = torch.norm(c)
+# print(norm)
+# normalization_factor = np.sqrt(k*P) / norm
+# z_hat = c * normalization_factor.unsqueeze(-1)  # 使用 unsqueeze 来确保维度匹配
 
-        # 16QAM解调
-        demodulated_bits = qam_modem.demodulate(received_signal, demod_type='hard')
+# print(torch.mean(torch.square(torch.abs(c))))
 
-        # LDPC解码
-        decoded_bits = decode(H, demodulated_bits, snr_db, maxiter=10)
-        decoded_message = get_message(G, decoded_bits)
+# print("Done")
 
-        # 计算误比特率（BER）
-        ber = np.mean(v != decoded_message)
 
-        print(f"SNR: {snr_db} dB, BER: {ber}")
 
-# 信号长度和码率
-codelength = 3072
-coderates = [1/2, 1/3, 1/6, 1/12]
-snr_dbs = [0, 10, 20]
+# li = [float(i) for i in sss.split("\n") if i.strip()]
+# for i in li:
+#     print(f'{10 * np.log10(1/i):.2f}', end=", ")
+# print()
 
-for coderate in coderates:
-    print(f"\nCode rate: {coderate:.4f}")
-    simulate_ldpc_qam_awgn(codelength, coderate, snr_dbs)
+from matplotlib import pyplot as plt
+li = [15.07, 16.99, 19.00, 20.18, 21.08, 21.74, 22.29, 19.36, 22.29, 25.23, 26.99, 27.21, 28.24, 28.54, 21.43, 25.09, 29.59, 32.22, 33.01, 33.01, 33.01]
+compression_ratios = [0.04, 0.09, 0.17, 0.25, 0.33, 0.42, 0.49]
+
+li = np.array(li).reshape(-1, 7)
+
+plt.figure()
+plt.plot(compression_ratios, li[0], c="lightcoral", marker="*", label="EXP_AWGN_00dB")
+plt.plot(compression_ratios, [20.5, 22, 24, 25, 26, 26.5, 27], c="lightcoral", marker="o", label="Reported_AWGN_00dB")
+
+plt.plot(compression_ratios, li[1], c="gold", marker="*", label="EXP_AWGN_10dB")
+plt.plot(compression_ratios, [24.5, 27, 30.5, 32, 33.5, 34, 34], c="gold", marker="o", label="Reported_AWGN_10dB")
+
+plt.plot(compression_ratios, li[2], c="deepskyblue", marker="*", label="EXP_AWGN_20dB")
+plt.plot(compression_ratios, [27, 31, 34, 36, 37, 37, 37], c="deepskyblue", marker="o", label="Reported_AWGN_20dB")
+
+plt.xlabel("Compression Ratios")
+plt.ylabel("PSNR(dB)")
+plt.ylim(0, 40)
+plt.grid()
+plt.legend(loc=4)
+plt.savefig("resources/experiments.png", bbox_inches="tight")
