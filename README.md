@@ -54,7 +54,7 @@ Train with `SNR` and `compression rate`, where`SNR`varies in `[0, 10, 20]`，`co
 
 - Performance Metric：`PSNR`
 
-- Computational Cost：`20s * 1000epochs / 3600 ~= 5.6h` with single `4090Ti`
+- Computational Cost：`20s * 1000 epochs / 3600 ~= 5.6h` with single `4090Ti`
 
 ## Experimental results
 
