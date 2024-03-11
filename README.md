@@ -58,8 +58,11 @@ Train with `SNR` and `compression rate`, where`SNR`varies in `[0, 10, 20]`，`co
 
 ## Experimental results
 
+Validation loss when training.
 
-There is still a gap. 
+![Training](resources/training_valid.png)
+
+There is still a performance gap. 
 
 ![exp_performance](resources/experiments.png)
 
