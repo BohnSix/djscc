@@ -62,7 +62,6 @@ Validation loss when training.
 
 ![Training](resources/training_valid.png)
 
-There is still a performance gap. 
 
 ![exp_performance](resources/experiments.png)
 
