@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import cv2
 import json
 import time
@@ -156,14 +156,14 @@ def Calculate_filters(comp_ratio, F=8, n=3072):
 
 SNR = 20
 CHANNEL_TYPE = "awgn"
-COMPRESSION_RATIO = 0.33
+COMPRESSION_RATIO = 0.04
 
 """
 rm checkpoints/*
 rm -r train_logs/*
 rm validation_imgs/*
 
-nohup python -u torch_impl.py > train_logs/awgn_snr20_c33.log 2>&1 &
+nohup python -u torch_impl.py > train_logs/awgn_snr20_c04.log 2>&1 &
 """
 
 EPOCHS = 1000
@@ -194,6 +194,7 @@ def train_one_epoch(epoch_index):
 
     for i, data in enumerate(trainloader):
         inputs, labels = data
+        b, _, _, _ = inputs.shape
         inputs = inputs.cuda()
         optimizer.zero_grad()
         decoded_img, chn_out = model(inputs)
@@ -202,10 +203,10 @@ def train_one_epoch(epoch_index):
         loss.backward()
         optimizer.step()
 
-        running_loss += loss.item()
+        running_loss += loss.item() * b
 
 
-    return running_loss
+    return running_loss / TRAIN_IMAGE_NUM
 
 writer = SummaryWriter(f'train_logs/deepjscc_{CHANNEL_TYPE}_snr{SNR:02d}_c{COMPRESSION_RATIO}')
 
@@ -225,31 +226,33 @@ for epoch in range(1, EPOCHS+1):
     print(f'EPOCH {epoch:03d} starts at {cur}')
 
     model.train(True)
-    avg_loss = train_one_epoch(epoch) * 1e4 / TRAIN_IMAGE_NUM
+    avg_loss = train_one_epoch(epoch)
 
     running_vloss = 0.0
     model.eval()
 
     with torch.no_grad():
-        if epoch > 2000:
+        if epoch > 640:
             val_times = 10
         else:
             val_times = 1
         for _ in range(val_times):
             for i, vdata in enumerate(testloader):
                 vinputs, vlabels = vdata
+                b, _, _, _ = vinputs.shape
+
                 vinputs = vinputs.cuda()
                 decoded_img, chn_out = model(vinputs)
                 vloss = loss_fn(decoded_img, vinputs)
 
-                running_vloss += vloss
+                running_vloss += vloss * b
 
         a = vinputs[:128].detach().cpu().numpy().reshape(16, 8, 3, 32, 32).transpose(0, 1, 3, 4, 2)
         b = decoded_img[:128].detach().cpu().numpy().reshape(16, 8, 3, 32, 32).transpose(0, 1, 3, 4, 2)
         c = (np.hstack(np.hstack(np.concatenate([a, b], 3)))[..., ::-1] * 255).astype(np.uint8)
         cv2.imwrite(f"validation_imgs/validation_{CHANNEL_TYPE}_snr{SNR:02d}_c{COMPRESSION_RATIO}_e{epoch:04d}.png", c)
 
-    avg_vloss = running_vloss  * 1e4 / TEST_IMAGE_NUM / val_times
+    avg_vloss = running_vloss / TEST_IMAGE_NUM / val_times
     print(f'LOSS train {avg_loss:.8f} valid {avg_vloss:.8f}')
     print(f'LOSS valid PSNR {10 * np.log10(1/avg_vloss.item()):.2f} dB. \n')
 
