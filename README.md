@@ -63,6 +63,8 @@ Validation loss when training.
 ![Training](resources/training_valid.png)
 
 
+Pre-fix "EXP" means the experimental results of this reimplement, "REP" means the performance reported in the lecture.
+
 ![exp_performance](resources/experiments.png)
 
 
