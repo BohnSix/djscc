@@ -72,10 +72,7 @@ Pre-fix "EXP" means the experimental results of this reimplement, "REP" means th
 See [Visualization](visualization.md) for details.
 
 <!-- ![Validation Loss](resources/valid_loss.png)
-
 ![Model performance](result.png) -->
-
-
 
 <!-- 
 ## colab environment setup snippets
