@@ -25,14 +25,12 @@
 
 ## Introduction
 
-Reimplement [Deep Joint Source-Channel Coding for Wireless Image Transmission](https://arxiv.org/abs/1809.01733) in Pytorch, but **FAILED** to reach the performance reported in literature.
-
-Thanks to [irdanish11's implemantation](https://github.com/irdanish11/DJSCC-for-Wireless-Image-Transmission) and [Ahmedest61's implemantation](https://github.com/Ahmedest61/D-JSCC). 
+Reimplement [Deep Joint Source-Channel Coding for Wireless Image Transmission](https://arxiv.org/abs/1809.01733) in Pytorch.
 
 ![awgn_performance](resources/performance_awgn.png)
 ![slowfading_performance](resources/performance_fading.png)
 
-
+Thanks to [irdanish11's implemantation](https://github.com/irdanish11/DJSCC-for-Wireless-Image-Transmission) and [Ahmedest61's implemantation](https://github.com/Ahmedest61/D-JSCC). 
 
 ## Technical Solution
 
@@ -68,8 +66,9 @@ Pre-fix "EXP" means the experimental results of this reimplement, "REP" means th
 ![exp_performance](resources/experiments.png)
 
 
-
 See [Visualization](visualization.md) for details.
+
+
 
 <!-- ![Validation Loss](resources/valid_loss.png)
 ![Model performance](result.png) -->
