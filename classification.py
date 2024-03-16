@@ -12,7 +12,9 @@ from tiny_imagenet import TinyImageNet
 from resnet import *
 from wideresnet import *
 import logging
-from bpg_ldpc import LDPCTransmitter, BPGEncoder, BPGDecoder
+# from bpg_ldpc import LDPCTransmitter, BPGEncoder, BPGDecoder
+from torch_impl import JSCC, Calculate_filters
+
 os.environ["CUDA_VISIBLE_DEVICES"] = '0, 1, 2'
 
 """
@@ -69,15 +71,32 @@ logger.info(args)
 use_cuda = not args.no_cuda and torch.cuda.is_available()
 torch.manual_seed(args.seed)
 kwargs = {'num_workers': 4, 'pin_memory': False} if use_cuda else {}
+# BPG-LDPC
 # SNR=10, bw=0.500000, k=3072, n=4608, m=16, PSNR=38.58, SSIM=0.97
-bw = 1 / 2
-esno_db = 10
-k, n, m = 3072, 4608, 16
-b = 256
-max_bytes = b * 32 * 32 * 3 * bw * math.log2(m) * k / n / 8
-ldpctransmitter = LDPCTransmitter(k, n, m, esno_db, 'AWGN')
-bpgencoder = BPGEncoder()
-bpgdecoder = BPGDecoder()
+# bw = 1 / 2
+# esno_db = 10
+# k, n, m = 3072, 4608, 16
+# b = 256
+# max_bytes = b * 32 * 32 * 3 * bw * math.log2(m) * k / n / 8
+# ldpctransmitter = LDPCTransmitter(k, n, m, esno_db, 'AWGN')
+# bpgencoder = BPGEncoder()
+# bpgdecoder = BPGDecoder()
+
+# JSCC
+SNR = 20
+CHANNEL_TYPE = "awgn"
+COMPRESSION_RATIO = 0.04
+EPOCHS = 1000
+NUM_WORKERS = 4
+LEARNING_RATE = 0.001
+CHANNEL_SNR_TRAIN = 10
+TRAIN_IMAGE_NUM = 50000
+TEST_IMAGE_NUM = 10000
+TRAIN_BS = 64
+TEST_BS = 4096
+K = Calculate_filters(COMPRESSION_RATIO)
+net = JSCC(K, snr_db=SNR).cuda()
+net.load_state_dict(torch.load("/media/bohnsix/djscc/checkpoints/jscc_model_17"))
 
 
 
@@ -180,12 +199,16 @@ test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_si
 def train(args, model, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
+        # BPG-LDPC
+        # image = imBatchtoImage(data)
+        # src_bits = bpgencoder.encode(image.numpy(), max_bytes)
+        # rcv_bits = ldpctransmitter.send(src_bits)
+        # decoded_image = bpgdecoder.decode(rcv_bits.numpy(), image.shape)
+        # data = decoded_image
 
-        image = imBatchtoImage(data)
-        src_bits = bpgencoder.encode(image.numpy(), max_bytes)
-        rcv_bits = ldpctransmitter.send(src_bits)
-        decoded_image = bpgdecoder.decode(rcv_bits.numpy(), image.shape)
-        data = decoded_image
+        #JSCC
+        decoded_img, chn_out = net(data.cuda())
+        data = decoded_img
 
         data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()
@@ -209,12 +232,16 @@ def eval_train(model, train_loader):
     correct = 0
     with torch.no_grad():
         for data, target in train_loader:
+            # BPG-LDPC
+            # image = imBatchtoImage(data)
+            # src_bits = bpgencoder.encode(image.numpy(), max_bytes)
+            # rcv_bits = ldpctransmitter.send(src_bits)
+            # decoded_image = bpgdecoder.decode(rcv_bits.numpy(), image.shape)
+            # data = decoded_image
 
-            image = imBatchtoImage(data)
-            src_bits = bpgencoder.encode(image.numpy(), max_bytes)
-            rcv_bits = ldpctransmitter.send(src_bits)
-            decoded_image = bpgdecoder.decode(rcv_bits.numpy(), image.shape)
-            data = decoded_image
+            # JSCC
+            decoded_img, chn_out = net(data.cuda())
+            data = decoded_img
 
             data, target = data.cuda(), target.cuda()
             output = model(data)
@@ -238,12 +265,16 @@ def eval_test(model, test_loader):
     correct = 0
     with torch.no_grad():
         for data, target in test_loader:
+            # BPG-LDPC
+            # image = imBatchtoImage(data)
+            # src_bits = bpgencoder.encode(image.numpy(), max_bytes)
+            # rcv_bits = ldpctransmitter.send(src_bits)
+            # decoded_image = bpgdecoder.decode(rcv_bits.numpy(), image.shape)
+            # data = decoded_image
 
-            image = imBatchtoImage(data)
-            src_bits = bpgencoder.encode(image.numpy(), max_bytes)
-            rcv_bits = ldpctransmitter.send(src_bits)
-            decoded_image = bpgdecoder.decode(rcv_bits.numpy(), image.shape)
-            data = decoded_image
+            # JSCC
+            decoded_img, chn_out = net(data.cuda())
+            data = decoded_img
 
             data, target = data.cuda(), target.cuda()
             output = model(data)
